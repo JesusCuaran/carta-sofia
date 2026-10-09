@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Respuestas de Sofía</title>
+<style>body{font-family:Arial,sans-serif;background:#eef6ff;color:#102b4e;margin:0;padding:24px}.wrap{max-width:800px;margin:auto}.card{background:white;border-radius:22px;padding:24px;margin:16px 0;box-shadow:0 10px 35px #1b5ea51c}button{border:0;border-radius:12px;padding:12px 18px;background:#176fc0;color:#fff;font-weight:700;cursor:pointer}.muted{color:#5d7592}.login input{display:block;width:100%;max-width:420px;padding:12px;margin:8px 0;border:1px solid #bfd7f4;border-radius:10px;box-sizing:border-box}.reply{border-top:1px solid #d9e8f8;padding:16px 0}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcecff;margin:4px 0;font-size:13px}</style></head>
+<body><div class="wrap"><h1>💌 Respuestas</h1><p class="muted">Panel privado de respuestas de la carta.</p>
+<div id="login" class="card login"><h2>Entrar</h2><input id="email" type="email" placeholder="Tu correo"><input id="password" type="password" placeholder="Tu contraseña"><button id="loginBtn">Iniciar sesión</button><p id="loginMsg"></p></div>
+<div id="panel" style="display:none"><div class="card"><button id="logout">Cerrar sesión</button><button id="refresh" style="margin-left:8px;background:#0e4d8f">Actualizar</button></div><div id="replies"></div></div></div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const $=id=>document.getElementById(id);
+$('loginBtn').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value);$('loginMsg').textContent='';}catch(e){$('loginMsg').textContent='Correo o contraseña incorrectos.'}};
+$('logout').onclick=()=>signOut(auth);$('refresh').onclick=load;
+onAuthStateChanged(auth,u=>{if(u){$('login').style.display='none';$('panel').style.display='block';load()}else{$('login').style.display='block';$('panel').style.display='none'}});
+async function load(){const box=$('replies');box.innerHTML='<div class="card">Cargando…</div>';try{const q=query(collection(db,'responses'),orderBy('createdAt','desc'));const snap=await getDocs(q);if(snap.empty){box.innerHTML='<div class="card">Todavía no hay respuestas.</div>';return}box.innerHTML='';snap.forEach(d=>{const x=d.data();const date=x.createdAt?.toDate?x.createdAt.toDate().toLocaleString('es-CO'):'';box.insertAdjacentHTML('beforeend',`<div class="card reply"><span class="pill">${escapeHtml(x.letters||'')}</span><br><span class="pill">${escapeHtml(x.talk||'')}</span><p><b>Fecha:</b> ${escapeHtml(date)}</p><p><b>Mensaje:</b> ${escapeHtml(x.message||'Sin mensaje')}</p></div>`)});}catch(e){box.innerHTML='<div class="card">No se pudieron cargar las respuestas. Revisa Firebase y las reglas de Firestore.</div>'}}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script></body></html>
